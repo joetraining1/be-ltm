@@ -10,6 +10,10 @@ const Bank = sequelize.define("banks", {
   },
   title: DataTypes.STRING,
   acronim: DataTypes.STRING,
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
   url: {
     type: DataTypes.STRING,
     allowNull: true

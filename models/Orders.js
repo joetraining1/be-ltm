@@ -17,12 +17,35 @@ const Order = sequelize.define("orders", {
     type: DataTypes.STRING,
     allowNull: true
   },
-  variant: DataTypes.INTEGER,
-  unit: DataTypes.INTEGER,
-  amount: DataTypes.INTEGER,
-  shipping: DataTypes.STRING,
-  total: DataTypes.INTEGER,
-  shipment: {
+  variant: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  unit: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  amount: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  shipping: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  total: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  ship_url: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  ship: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  proof_url: {
     type: DataTypes.STRING,
     allowNull: true
   },
