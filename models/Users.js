@@ -1,6 +1,9 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { BankAccount } = require("./BankAccounts");
+const { Cart } = require("./Carts");
+const { Order } = require("./Orders");
 
 const User = sequelize.define("users", {
   id: {
@@ -28,5 +31,24 @@ const User = sequelize.define("users", {
   email: DataTypes.STRING,
   password: DataTypes.STRING,
 });
+
+User.hasMany(BankAccount, {
+  foreignKey: {
+      name: 'user_id'
+  },
+  onDelete: 'CASCADE'
+})
+User.hasOne(Cart, {
+  foreignKey: {
+      name: 'user_id'
+  },
+  onDelete: 'CASCADE'
+})
+User.hasMany(Order, {
+  foreignKey: {
+      name: 'user_id'
+  },
+  onDelete: 'CASCADE'
+})
 
 exports.User = User;

@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { BankAccount } = require("./BankAccounts");
 
 const Bank = sequelize.define("banks", {
   id: {
@@ -19,5 +20,11 @@ const Bank = sequelize.define("banks", {
     allowNull: true
   },
 });
+
+Bank.hasMany(BankAccount, {
+  foreignKey: {
+      name: 'bank_id'
+  }
+})
 
 exports.Bank = Bank

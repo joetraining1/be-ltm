@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { Order } = require("./Orders");
 
 const Status = sequelize.define("statuses", {
   id: {
@@ -11,5 +12,11 @@ const Status = sequelize.define("statuses", {
   title: DataTypes.STRING,
   description: DataTypes.STRING,
 });
+
+Status.hasMany(Order, {
+  foreignKey: {
+      name: 'status_id'
+  }
+})
 
 exports.Status = Status

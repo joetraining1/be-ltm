@@ -1,6 +1,8 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { CartDetail } = require("./CartDetails");
+const { OrderDetail } = require("./OrderDetail");
 
 const Product = sequelize.define("products", {
   id: {
@@ -19,5 +21,16 @@ const Product = sequelize.define("products", {
     allowNull: true
   },
 });
+
+Product.hasMany(CartDetail, {
+  foreignKey: {
+    name: 'product_id'
+  }
+})
+Product.hasMany(OrderDetail, {
+  foreignKey: {
+    name: 'product_id'
+  }
+})
 
 exports.Product = Product

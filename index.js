@@ -5,6 +5,7 @@ const FileUpload = require('express-fileupload');
 // const { init } = require('./config/db')
 
 require('dotenv').config()
+const PORT = 3030;
 
 const app = express();
 
@@ -14,10 +15,18 @@ app.use(cors());
 app.use(FileUpload());
 app.use(express.static("public"));
 
+const { JWTController } = require('./controllers/JWTCon')
+
+const typeRouter = require('./routes/Type');
+
+app.use("/type", typeRouter);
+
 app.get("/", (req, res) => {
     res.send({ message: "You're connected to this api." });
   });
 
-app.listen(3030, () => {
-    console.log('Server up and running...')
+
+
+app.listen(PORT, () => {
+    console.log('Server up and running on: '.concat(PORT))
 })

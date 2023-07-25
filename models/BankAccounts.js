@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { Order } = require("./Orders");
 
 const BankAccount = sequelize.define("accounts", {
   id: {
@@ -8,8 +9,14 @@ const BankAccount = sequelize.define("accounts", {
     autoIncrement: true,
     type: DataTypes.INTEGER,
   },
-  bank: DataTypes.STRING,
+  bank_name: DataTypes.STRING,
   norek: DataTypes.STRING,
 });
+
+BankAccount.hasMany(Order, {
+  foreignKey: {
+      name: 'account_id'
+  }
+})
 
 exports.BankAccount = BankAccount

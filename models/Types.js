@@ -1,6 +1,7 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db')
+const { sequelize } = require('../config/db');
+const { User } = require("./Users");
 
 const Type = sequelize.define("types", {
   id: {
@@ -12,4 +13,11 @@ const Type = sequelize.define("types", {
   description: DataTypes.STRING,
 });
 
-exports.Type = Type
+Type.hasMany(User, {
+  foreignKey: {
+    name: 'type_id'
+  }
+})
+
+
+module.exports = Type
