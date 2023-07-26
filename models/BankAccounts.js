@@ -18,5 +18,10 @@ BankAccount.hasMany(Order, {
       name: 'account_id'
   }
 })
+Order.belongsTo(BankAccount, {
+  foreignKey: {
+    name: 'account_id'
+  }
+})
 
 exports.BankAccount = BankAccount

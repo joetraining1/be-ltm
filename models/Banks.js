@@ -27,4 +27,10 @@ Bank.hasMany(BankAccount, {
   }
 })
 
+BankAccount.belongsTo(Bank, {
+  foreignKey: {
+    name: 'bank_id'
+  }
+})
+
 exports.Bank = Bank

@@ -11,6 +11,7 @@ const Product = sequelize.define("products", {
     type: DataTypes.INTEGER,
   },
   title: DataTypes.STRING,
+  price: DataTypes.STRING,
   description: DataTypes.STRING,
   image: {
     type: DataTypes.STRING,
@@ -28,6 +29,17 @@ Product.hasMany(CartDetail, {
   }
 })
 Product.hasMany(OrderDetail, {
+  foreignKey: {
+    name: 'product_id'
+  }
+})
+
+OrderDetail.belongsTo(Product, {
+  foreignKey: {
+    name: 'product_id'
+  }
+})
+CartDetail.belongsTo(Product, {
   foreignKey: {
     name: 'product_id'
   }

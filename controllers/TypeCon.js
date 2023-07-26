@@ -1,46 +1,55 @@
-const Type = require("../models/Types")
+const Types = require("../models/Types");
 
 exports.TypeController = {
-    async create(req, res)
-    {
-        const type = await Type.create({
-            title: req?.body?.title,
-            description: req?.body?.description
-        })
+  async getAll(req, res) {
+    const type = await Type.findAll();
 
-        res.send({
-            msg: 'Type added.',
-            result: type
-        })
-    },
+    res.send({
+      msg: "Type Collected Succesfully",
+      result: type,
+    });
+  },
 
-    async update(req, res)
-    {
+  async create(req, res) {
+    const type = await Type.create({
+      title: req?.body?.title,
+      description: req?.body?.description,
+    });
 
-        const body = objectCleaner(req.body)
+    res.send({
+      msg: "Type added.",
+      result: type,
+    });
+  },
 
-        const team = await Team.update(body, {where: {
-            id: req.params.id
-        }})
+  async update(req, res) {
+    const type = await Type.update(req.body, {
+      where: {
+        id: req.params.id,
+      },
+    });
 
-        res.send({message: "Team info updated successfully"})
-    },
+    res.send({
+      message: "Type updated successfully.",
+    });
+  },
 
+  async delete(req, res) {
+    const type = await Type.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
 
-    async delete(req, res)
-    {
-        const team = await Team.destroy({
-            where: {
-                id: req.params.id
-            }
-        })
+    res.send({ message: "Type deleted successfully" });
+  },
 
-        res.send({message: "Team deleted successfully"})
-    },
+  async get(req, res) {
+    const type = await Type.findByPk(req.params.id);
 
-    async getTeam(req, res)
-    {
-        const team = Team.findByPk(req.params.id)
-        res.send(team)
-    }
-}
+    res.send({
+      msg: "Type found.",
+      result: type,
+    });
+  },
+};

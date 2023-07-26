@@ -33,7 +33,7 @@ exports.connect = connect;
 exports.closeDb = closeDb;
 
 const { User } = require('../models/Users');
-const Type = require('../models/Types');
+const Types = require('../models/Types');
 const { Categories } = require('../models/Categories');
 const { Product } = require('../models/Products');
 const { CartDetail } = require('../models/CartDetails');

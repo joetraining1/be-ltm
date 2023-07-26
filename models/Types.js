@@ -3,7 +3,7 @@ const { DataTypes } = require("sequelize");
 const { sequelize } = require('../config/db');
 const { User } = require("./Users");
 
-const Type = sequelize.define("types", {
+const Types = sequelize.define("types", {
   id: {
     primaryKey: true,
     autoIncrement: true,
@@ -13,11 +13,17 @@ const Type = sequelize.define("types", {
   description: DataTypes.STRING,
 });
 
-Type.hasMany(User, {
+Types.hasMany(User, {
+  foreignKey: {
+    name: 'type_id'
+  }
+})
+
+User.belongsTo(Types, {
   foreignKey: {
     name: 'type_id'
   }
 })
 
 
-module.exports = Type
+module.exports = Types

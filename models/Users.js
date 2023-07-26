@@ -51,4 +51,19 @@ User.hasMany(Order, {
   onDelete: 'CASCADE'
 })
 
+Cart.belongsTo(User, {
+  foreignKey: {
+    name: 'user_id'
+},
+})
+Order.belongsTo(User, {
+  foreignKey: {
+      name: 'user_id'
+  },
+})
+BankAccount.belongsTo(User, {
+  foreignKey: {
+      name: 'user_id'
+  },
+})
 exports.User = User;

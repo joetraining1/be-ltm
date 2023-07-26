@@ -1,0 +1,132 @@
+const { Product } = require("../models/Products");
+const path = require("path");
+const fs = require("fs");
+
+exports.ProductController = {
+  async getAll(req, res) {
+    const product = await Product.findAll();
+
+    res.send({
+      msg: "Product Collected Succesfully",
+      result: product,
+    });
+  },
+
+  async create(req, res) {
+    if (req.files === null) {
+      const product = await Product.create({
+        title: req?.body?.title,
+        description: req?.body?.description,
+      });
+
+      res.send({
+        msg: "Product added.",
+        result: product,
+      });
+    } else {
+      const name = req.body.title;
+      const file = req.files.image;
+      const fileSize = file.data.length;
+      const ext = path.extname(file.name);
+      const fileName = file.md5 + ext;
+      const url = `${req.protocol}://${req.get("host")}/product/${fileName}`;
+      const allowedType = [".png", ".jpg", ".jpeg"];
+
+      if (!allowedType.includes(ext.toLowerCase()))
+        return res.status(422).json({ msg: "Invalid image extension." });
+      if (fileSize > 2000000)
+        return res.status(422).json({ msg: "Image must be less than 2 MB" });
+
+      file.mv(`./public/product/${fileName}`, async (err) => {
+        if (err) return res.status(500).json({ msg: err.message });
+        try {
+          await Bank.create({
+            title: name,
+            description: req.body.description,
+            image: fileName,
+            url: url,
+          });
+          res.status(201).json({ msg: "Product added." });
+        } catch (error) {
+          console.log(error.message);
+        }
+      });
+    }
+  },
+
+  async update(req, res) {
+    const findProduct = await Product.findOne({
+      where: {
+        id: req.params.id,
+      },
+    });
+    if (findProduct) {
+      let fileImage;
+      if (req?.files?.image) {
+        const file = req.files.image;
+        const fileSize = file.data.length;
+        const ext = path.extname(file.name);
+        const fileName = file.md5 + ext;
+        const allowedType = [".png", ".jpg", ".jpeg"];
+
+        if (!allowedType.includes(ext.toLowerCase()))
+          return res.status(422).json({ msg: "Invalid image extension." });
+        if (fileSize > 2000000)
+          return res.status(422).json({ msg: "Image must be less than 2 MB." });
+
+        const filepath = `./public/product/${findProduct.image}`;
+        fs.unlinkSync(filepath);
+
+        file.mv(`./public/product/${fileName}`, (err) => {
+          if (err) return res.status(500).json({ msg: err.message });
+        });
+        const url = `${req.protocol}://${req.get("host")}/product/${fileName}`;
+
+        fileImage = {
+          image: fileName,
+          url: url,
+        };
+      }
+      const product = await Product.update(
+        {
+          title: req?.body?.title ? req.body.title : findProduct.title,
+          acronim: req?.body?.description ? req.body.description : findProduct.description,
+          image: req?.files?.image ? fileImage.image : findProduct.image,
+          url: req?.files?.image ? fileImage.url : findProduct.url,
+        },
+        {
+          where: {
+            id: req.params.id,
+          },
+        }
+      );
+
+      res.send({
+        message: "Product updated successfully.",
+      });
+    } else {
+      return res.status(404).send({
+        msg: "Product not found.",
+      });
+    }
+  },
+
+  async delete(req, res) {
+    const product = await Product.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.send({ message: "Product deleted successfully" });
+  },
+
+  async get(req, res) {
+    const product = await Product.findByPk(req.params.id);
+
+    res.send({
+      msg: "Product found.",
+      result: product,
+    });
+  },
+};

@@ -1,0 +1,55 @@
+const { Payment } = require("../models/Payments");
+
+exports.PaymentController = {
+  async getAll(req, res) {
+    const payment = await Payment.findAll();
+
+    res.send({
+      msg: "Payment Collected Succesfully",
+      result: payment,
+    });
+  },
+
+  async create(req, res) {
+    const payment = await Payment.create({
+      title: req?.body?.title,
+      description: req?.body?.description,
+    });
+
+    res.send({
+      msg: "Payment added.",
+      result: payment,
+    });
+  },
+
+  async update(req, res) {
+    const payment = await Payment.update(req.body, {
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.send({
+      message: "Payment updated successfully.",
+    });
+  },
+
+  async delete(req, res) {
+    const payment = await Payment.destroy({
+      where: {
+        id: req.params.id,
+      },
+    });
+
+    res.send({ message: "Payment deleted successfully" });
+  },
+
+  async get(req, res) {
+    const payment = await Payment.findByPk(req.params.id);
+
+    res.send({
+      msg: "Payment found.",
+      result: payment,
+    });
+  },
+};

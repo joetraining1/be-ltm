@@ -1,7 +1,6 @@
 const { DataTypes } = require("sequelize");
 
-const { sequelize } = require('../config/db');
-const { User } = require("./Users");
+const { sequelize } = require("../config/db");
 const { CartDetail } = require("./CartDetails");
 
 const Cart = sequelize.define("carts", {
@@ -10,16 +9,30 @@ const Cart = sequelize.define("carts", {
     autoIncrement: true,
     type: DataTypes.INTEGER,
   },
-  variant: DataTypes.INTEGER,
-  unit: DataTypes.INTEGER,
-  total: DataTypes.INTEGER,
+  variant: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  unit: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  total: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
 });
 
 Cart.hasMany(CartDetail, {
   foreignKey: {
-      name: 'cart_id'
+    name: "cart_id",
   },
-  onDelete: 'CASCADE'
+  onDelete: "CASCADE",
+});
+CartDetail.belongsTo(Cart, {
+  foreignKey: {
+    name: 'cart_id'
+  }
 })
 
-exports.Cart = Cart
+exports.Cart = Cart;
