@@ -54,12 +54,21 @@ const Order = sequelize.define("orders", {
     type: DataTypes.STRING,
     allowNull: true
   },
+  note: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
 });
 
 Order.hasMany(OrderDetail, {
   foreignKey: {
       name: 'order_id'
   },
+})
+OrderDetail.belongsTo(Order, {
+  foreignKey: {
+    name: 'order_id'
+},
 })
 
 exports.Order = Order;

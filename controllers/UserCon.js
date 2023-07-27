@@ -4,6 +4,8 @@ const Type = require("../models/Types");
 const { User } = require("../models/Users");
 const { userFilter } = require("../utils/JSONfilter");
 const { CartController } = require("./CartCon");
+const path = require("path");
+const fs = require("fs");
 
 exports.UserController = {
   async create(req, res) {

@@ -4,6 +4,7 @@ const { CartDetail } = require("../models/CartDetails");
 const { Cart } = require("../models/Carts");
 
 exports.CartController = {
+  // get all record of cart
   async getAll(req, res) {
     const Qprop = `SELECT carts.id, carts.variant, carts.unit, carts.total, users.name, users.email, users.url `;
     const Qrelate = "FROM carts INNER JOIN users on carts.user_id = users.id";
@@ -18,10 +19,40 @@ exports.CartController = {
     });
   },
 
-  async getAllbyId(req, res) {
+  // get all record of cart based on cart id using user_id
+  async getAllbyUser(req, res) {
     const cart = await Cart.findOne({
       where: {
         user_id: req.params?.user_id,
+      },
+    });
+    if (cart) {
+      const Qprop = `SELECT cart_details.id, cart_details.qty, cart_details.amount, products.url, products.price, products.title as "nama_produk", categories.title as "kategori" `;
+      const Qrelate =
+        "FROM cart_details INNER JOIN products on cart_details.product_id = products.id LEFT OUTER JOIN categories on products.ctg_id = categories.id ";
+      const Qparam = `WHERE cart_details.cart_id = ${cart?.id}`;
+      const cd = await sequelize.query(Qprop.concat(Qrelate).concat(Qparam), {
+        type: Sequelize.QueryTypes.SELECT,
+      });
+
+      res.send({
+        msg: "Cart Detail Collected Succesfully",
+        result: {
+          metadata: cart,
+          dataset: cd
+        }
+      });
+    } else {
+      res.status(404).send({
+        msg: "Cart not found.",
+      });
+    }
+  },
+
+  async getAllbyId(req, res) {
+    const cart = await Cart.findOne({
+      where: {
+        user_id: req.params?.id,
       },
     });
     if (cart) {
@@ -35,12 +66,14 @@ exports.CartController = {
 
       res.send({
         msg: "Cart Detail Collected Succesfully",
-        result: ba,
+        result: {
+          metadata: cart,
+          dataset: cd
+        }
       });
     } else {
       res.status(404).send({
         msg: "Cart not found.",
-        result: ba,
       });
     }
   },

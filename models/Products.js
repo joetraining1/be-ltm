@@ -11,7 +11,8 @@ const Product = sequelize.define("products", {
     type: DataTypes.INTEGER,
   },
   title: DataTypes.STRING,
-  price: DataTypes.STRING,
+  price: DataTypes.INTEGER,
+  stock: DataTypes.INTEGER,
   description: DataTypes.STRING,
   image: {
     type: DataTypes.STRING,

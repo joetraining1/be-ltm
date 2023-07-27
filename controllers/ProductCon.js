@@ -17,6 +17,8 @@ exports.ProductController = {
       const product = await Product.create({
         title: req?.body?.title,
         description: req?.body?.description,
+        price: req.body.price,
+        stock: req.body.stock,
       });
 
       res.send({
@@ -40,11 +42,13 @@ exports.ProductController = {
       file.mv(`./public/product/${fileName}`, async (err) => {
         if (err) return res.status(500).json({ msg: err.message });
         try {
-          await Bank.create({
+          await Product.create({
             title: name,
             description: req.body.description,
             image: fileName,
             url: url,
+            price: req.body.price,
+            stock: req.body.stock,
           });
           res.status(201).json({ msg: "Product added." });
         } catch (error) {
@@ -90,9 +94,14 @@ exports.ProductController = {
       const product = await Product.update(
         {
           title: req?.body?.title ? req.body.title : findProduct.title,
-          acronim: req?.body?.description ? req.body.description : findProduct.description,
+          acronim: req?.body?.description
+            ? req.body.description
+            : findProduct.description,
           image: req?.files?.image ? fileImage.image : findProduct.image,
           url: req?.files?.image ? fileImage.url : findProduct.url,
+          ctg_id: req?.body?.ctg_id ? req?.body?.ctg_id : findProduct.ctg_id,
+          stock: req?.body?.stock ? req?.body?.stock : findProduct.stock,
+          price: req?.body?.price ? req?.body?.price : findProduct.price,
         },
         {
           where: {

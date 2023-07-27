@@ -28,6 +28,7 @@ const userRouter = require('./routes/User');
 const accountRouter = require('./routes/Account')
 const cartRouter = require('./routes/Cart')
 const cartDetailRouter = require('./routes/CartDetail')
+const orderRouter = require('./routes/Order');
 
 app.use("/type", JWTController.verifyAccessToken.bind(JWTController), typeRouter);
 app.use("/ctg", JWTController.verifyAccessToken.bind(JWTController), ctgRouter);
@@ -39,6 +40,7 @@ app.use("/user", JWTController.verifyAccessToken.bind(JWTController), userRouter
 app.use("/account", JWTController.verifyAccessToken.bind(JWTController), accountRouter);
 app.use("/cart", JWTController.verifyAccessToken.bind(JWTController), cartRouter);
 app.use("/cart_details", JWTController.verifyAccessToken.bind(JWTController), cartDetailRouter);
+app.use("/order", JWTController.verifyAccessToken.bind(JWTController), orderRouter);
 
 app.post("/register", HomeController.register);
 app.post("/login", HomeController.login);
