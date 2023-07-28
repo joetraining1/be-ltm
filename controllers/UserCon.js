@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, Op } = require("sequelize");
 const { connect, sequelize } = require("../config/db");
 const Type = require("../models/Types");
 const { User } = require("../models/Users");
@@ -6,6 +6,11 @@ const { userFilter } = require("../utils/JSONfilter");
 const { CartController } = require("./CartCon");
 const path = require("path");
 const fs = require("fs");
+const { JWTController } = require("./JWTCon");
+const { Cart } = require("../models/Carts");
+const { cookieParser } = require("../utils/CookieParser");
+const bcrypt = require("bcrypt");
+const { Order } = require("../models/Orders");
 
 exports.UserController = {
   async create(req, res) {
@@ -61,6 +66,40 @@ exports.UserController = {
       });
     }
   },
+
+  async me(req, res) {
+    const token = cookieParser("accessToken", req.headers.cookie);
+    const decoded = JWTController.verifyToken(token);
+    if (!decoded) {
+      res.status(405).json({
+        msg: "Invalid token.",
+      });
+    } else {
+      const user = await User.findOne({
+        where: { email: decoded.email },
+      });
+      const type = await Type.findByPk(user.type_id);
+      const cart = await Cart.findOne({
+        where: {
+          user_id: user.id,
+        },
+      });
+
+      res.status(200).send({
+        msg: "User found.",
+        result: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          avapic: user.url,
+          type: type.title,
+          cart_id: cart.id,
+        },
+      });
+    }
+  },
+
   async getUserByEmail(email) {
     const user = await User.findOne({
       where: { email: email },
@@ -72,6 +111,8 @@ exports.UserController = {
   async updateUser(req, res) {
     await connect();
 
+    console.log(req.files.image);
+
     const findUser = await User.findOne({
       where: {
         id: req.params.id,
@@ -79,7 +120,10 @@ exports.UserController = {
     });
     if (findUser) {
       let fileImage;
-      const hashedPassword = bcrypt.hashSync(req.body.password, 10);
+      let password;
+      if (req.body.password) {
+        password = bcrypt.hashSync(req.body.password, 10);
+      }
 
       if (req?.files?.image) {
         const file = req.files.image;
@@ -93,12 +137,15 @@ exports.UserController = {
         if (fileSize > 2000000)
           return res.status(422).json({ msg: "Image must be less than 2 MB." });
 
-        const filepath = `./public/all/${findUser.image}`;
-        fs.unlinkSync(filepath);
+        if (findUser.url === null) {
+          file.mv(`./public/all/${fileName}`, (err) => {
+            if (err) return res.status(500).json({ msg: err.message });
+          });
+        } else {
+          const filepath = `./public/all/${findUser.image}`;
+          fs.unlinkSync(filepath);
+        }
 
-        file.mv(`./public/all/${fileName}`, (err) => {
-          if (err) return res.status(500).json({ msg: err.message });
-        });
         const url = `${req.protocol}://${req.get("host")}/all/${fileName}`;
 
         fileImage = {
@@ -114,7 +161,7 @@ exports.UserController = {
           image: req?.files?.image ? fileImage.image : findUser.image,
           url: req?.files?.image ? fileImage.url : findUser.url,
           email: req?.body?.email ? req.body.email : findUser.email,
-          password: req?.body?.password ? hashedPassword : findUser.password,
+          password: req?.body?.password ? password : findUser.password,
         },
         {
           where: {
@@ -124,7 +171,15 @@ exports.UserController = {
       );
 
       res.send({
-        message: "User updated successfully.",
+        msg: "User updated successfully.",
+        result: {
+          id: user.id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          avapic: user.url,
+          alamat: user.alamat,
+        },
       });
     } else {
       return res.status(404).send({
@@ -164,25 +219,37 @@ exports.UserController = {
     await connect();
 
     const userQ = await sequelize.query(
-      `SELECT users.id, users.name, users.phone, users.alamat, users.url, types.title as "type" FROM users INNER join types on users.type_id = types.id WHERE users.id = ${req.params.id}`,
+      `SELECT users.id, users.name, users.phone, users.alamat, users.url, users.email, users.createdAt, types.title as "type" FROM users INNER join types on users.type_id = types.id WHERE users.id = ${req.params.id}`,
       { type: Sequelize.QueryTypes.SELECT }
     );
 
-    // const user = await User.findOne({
-    //   where: {
-    //     id: req.params.id,
-    //   },
-    //   attributes: ["id", "name", "phone", "alamat", "email", "url"],
-    // });
-    // const type = await Type.findByPk(user.type_id);
+    const LastOrder = await sequelize.query(
+      `SELECT * FROM orders WHERE orders.user_id = ${req.params.id} AND orders.cp IS NULL ORDER BY id DESC LIMIT 1`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
 
-    if (!userQ) res.status(404).json({ errors: { msg: "User not found" } });
-    else {
-      res.send({
-        msg: "User found.",
-        result: userQ[0],
-      });
-    }
+
+    res.status(200).send({
+      msg: 'data found.',
+      result: userQ[0],
+      last: LastOrder
+    })
+
+    // // const user = await User.findOne({
+    // //   where: {
+    // //     id: req.params.id,
+    // //   },
+    // //   attributes: ["id", "name", "phone", "alamat", "email", "url"],
+    // // });
+    // // const type = await Type.findByPk(user.type_id);
+
+    // if (!userQ) res.status(404).send({ errors: { msg: "User not found" } });
+    // else {
+    //   res.send({
+    //     msg: "User found.",
+    //     result: userQ,
+    //   });
+    // }
   },
 
   async deleteUser(req, res) {

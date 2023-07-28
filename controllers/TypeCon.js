@@ -2,7 +2,7 @@ const Types = require("../models/Types");
 
 exports.TypeController = {
   async getAll(req, res) {
-    const type = await Type.findAll();
+    const type = await Types.findAll();
 
     res.send({
       msg: "Type Collected Succesfully",
@@ -11,7 +11,7 @@ exports.TypeController = {
   },
 
   async create(req, res) {
-    const type = await Type.create({
+    const type = await Types.create({
       title: req?.body?.title,
       description: req?.body?.description,
     });
@@ -23,7 +23,7 @@ exports.TypeController = {
   },
 
   async update(req, res) {
-    const type = await Type.update(req.body, {
+    const type = await Types.update(req.body, {
       where: {
         id: req.params.id,
       },
@@ -35,7 +35,7 @@ exports.TypeController = {
   },
 
   async delete(req, res) {
-    const type = await Type.destroy({
+    const type = await Types.destroy({
       where: {
         id: req.params.id,
       },
@@ -45,7 +45,7 @@ exports.TypeController = {
   },
 
   async get(req, res) {
-    const type = await Type.findByPk(req.params.id);
+    const type = await Types.findByPk(req.params.id);
 
     res.send({
       msg: "Type found.",

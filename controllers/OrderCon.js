@@ -7,6 +7,8 @@ const fs = require("fs");
 const { Cart } = require("../models/Carts");
 const { ImageHandler } = require("../utils/ImageHandler");
 const { OrderDetailController } = require("./OrderDetailCon");
+const { User } = require("../models/Users");
+const { CartDetail } = require("../models/CartDetails");
 
 exports.OrderController = {
   // admin display data
@@ -204,6 +206,44 @@ exports.OrderController = {
   // new order, user step 1
   // body (user_id, cart_id)
   async checkout(req, res) {
+    // extract cart items using cart id
+    const Qprop = `SELECT cart_details.qty, cart_details.amount, cart_details.product_id, products.title as "produk", products.price `;
+    const Qrelate = `FROM cart_details INNER JOIN products on cart_details.product_id = products.id `;
+    const Qclause = `WHERE cart_details.cart_id = ${req.body.cart_id}`;
+    const cartData = await sequelize.query(
+      Qprop.concat(Qrelate).concat(Qclause),
+      {
+        type: Sequelize.QueryTypes.SELECT,
+      }
+    );
+    const cartProp = await Cart.findOne({
+      where: {
+        id: req.body.cart_id,
+      },
+    });
+
+    console.log(cartProp);
+    // bikin order baru dan ambil id
+    const order = await Order.create({
+      variant: cartProp?.dataValues?.variant,
+      unit: cartProp?.dataValues?.unit,
+      amount: cartProp?.dataValues?.total,
+      user_id: req.body.user_id,
+      status_id: 1,
+    });
+
+    // migrasi ke item order
+    const multiCreate = cartData.map(async function (item, index) {
+      await OrderDetail.create({
+        qty: item.qty,
+        amount: item.amount,
+        order_id: order.id,
+        product_id: item.product_id,
+      });
+      return;
+    });
+
+    // clearing cart details
     const cart = await Cart.update(
       {
         variant: null,
@@ -216,13 +256,10 @@ exports.OrderController = {
         },
       }
     );
-    // clearing cart details
-    const order = await Order.create({
-      variant: req.body.variant,
-      unit: req.body.unit,
-      amount: req.body.amount,
-      user_id: req.body.user_id,
-      status_id: req.body.status_id,
+    const clearCart = await CartDetail.destroy({
+      where: {
+        cart_id: req.body.cart_id,
+      },
     });
 
     res.status(200).send({
@@ -235,12 +272,29 @@ exports.OrderController = {
 
   // send data to payment form
   async paymentForm(req, res) {
-    const order = await Order.findByPk(req.params.order_id);
+    const order = await Order.findByPk(req.params.id);
+
+    const Dprop = `SELECT order_details.qty, order_details.amount, products.title as "produk", products.price, products.url, categories.title as "kategori" `;
+    const Drelate = `FROM order_details INNER JOIN products on order_details.product_id = products.id INNER JOIN categories on products.ctg_id = categories.id `;
+    const Dclause = `WHERE order_details.order_id = ${req.params.id}`;
+
+    const dataset = await sequelize.query(
+      Dprop.concat(Drelate).concat(Dclause),
+      {
+        type: Sequelize.QueryTypes.SELECT,
+      }
+    );
 
     if (order) {
       return res.status(200).send({
         msg: "Order found.",
-        result: order,
+        metadata: {
+          id: order.id,
+          variant: order.variant,
+          unit: order.unit,
+          amount: order.amount,
+        },
+        dataset: dataset,
       });
     } else {
       return res.status(404).send({
@@ -303,50 +357,57 @@ exports.OrderController = {
   async update(req, res) {
     const findOrder = await Order.findByPk(req.params.id);
     if (findOrder) {
-      let fileImage;
+      let imagesHolder;
       if (req?.files?.ship || req?.files?.proof) {
-        const file = req?.files?.ship || req?.files?.proof;
-        const fileSize = file.data.length;
-        const ext = path.extname(file.name);
-        const fileName = file.md5 + ext;
-        const url = `${req.protocol}://${req.get("host")}/all/${fileName}`;
-        const allowedType = [".png", ".jpg", ".jpeg"];
+        if (req?.files?.ship) {
+          const file = req.files.ship;
+          const fileSize = file.data.length;
+          const ext = path.extname(file.name);
+          const fileName = file.md5 + ext;
+          const url = `${req.protocol}://${req.get("host")}/all/${fileName}`;
+          const allowedType = [".png", ".jpg", ".jpeg"];
 
-        if (!allowedType.includes(ext.toLowerCase()))
-          return res.status(422).json({ msg: "Invalid image extension." });
-        if (fileSize > 2000000)
-          return res.status(422).json({ msg: "Image must be less than 2 MB" });
+          if (!allowedType.includes(ext.toLowerCase()))
+            return res.status(422).json({ msg: "Invalid image extension." });
+          if (fileSize > 2000000)
+            return res
+              .status(422)
+              .json({ msg: "Image must be less than 2 MB" });
 
-        file.mv(`./public/all/${fileName}`, async (err) => {
-          if (err) return res.status(500).json({ msg: err.message });
-        });
+          file.mv(`./public/all/${fileName}`, async (err) => {
+            if (err) return res.status(500).json({ msg: err.message });
+          });
+          imagesHolder = { ...imagesHolder, ship: fileName, ship_url: url };
+        }
+        if (req?.files?.proof) {
+          const file = req.files.proof;
+          const fileSize = file.data.length;
+          const ext = path.extname(file.name);
+          const fileName = file.md5 + ext;
+          const url = `${req.protocol}://${req.get("host")}/all/${fileName}`;
+          const allowedType = [".png", ".jpg", ".jpeg"];
 
-        fileImage = {
-          ship: req?.files?.ship ? fileName : null,
-          ship_url: req?.files?.ship ? url : null,
-          proof: req?.files?.proof ? fileName : null,
-          proof_url: req?.files?.proof ? url : null,
-        };
+          if (!allowedType.includes(ext.toLowerCase()))
+            return res.status(422).json({ msg: "Invalid image extension." });
+          if (fileSize > 2000000)
+            return res
+              .status(422)
+              .json({ msg: "Image must be less than 2 MB" });
+
+          file.mv(`./public/all/${fileName}`, async (err) => {
+            if (err) return res.status(500).json({ msg: err.message });
+          });
+
+          imagesHolder = { ...imagesHolder, proof: fileName, proof_url: url };
+        }
       }
       const order = await Order.update(
         {
           ...req.body,
-          ship:
-            req?.files?.ship && fileImage?.ship !== null
-              ? fileImage?.ship
-              : null,
-          ship_url:
-            req?.files?.ship && fileImage?.ship_url !== null
-              ? fileImage?.ship_url
-              : null,
-          proof:
-            req?.files?.proof && fileImage?.proof !== null
-              ? fileImage.image
-              : null,
-          proof_url:
-            req?.files?.proof && fileImage?.proof_url !== null
-              ? fileImage.url
-              : null,
+          ship_url: req?.files?.ship ? imagesHolder?.ship_url : findOrder.ship_url,
+          ship: req?.files?.ship ? imagesHolder?.ship : findOrder.ship,
+          proof_url: req?.files?.proof ? imagesHolder?.proof_url : findOrder.proof_url,
+          proof: req?.files?.proof ? imagesHolder?.proof : findOrder.proof,
         },
         {
           where: {

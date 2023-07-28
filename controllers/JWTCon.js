@@ -40,7 +40,7 @@ exports.JWTController = {
   },
 
   grantNewAccessToken(req, res) {
-    const token = cookieParser("refresh_token", req.headers.cookie);
+    const token = cookieParser("refreshToken", req.headers.cookie);
     let decoded = this.verifyToken(token);
     if (!decoded) res.status(405).json({ message: "invalid token" });
     else {

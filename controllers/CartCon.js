@@ -99,7 +99,7 @@ exports.CartController = {
       total: null,
       user_id: user_id,
     });
-    return;
+    return cart;
   },
 
   async deleteByUser(user_id) {

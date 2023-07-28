@@ -11,7 +11,12 @@ const app = express();
 
 // init()
 app.use(express.json());
-app.use(cors());
+app.use(cors(
+  {
+    credentials: true,
+    origin: 'http://localhost:5173'
+  }
+));
 app.use(FileUpload());
 app.use(express.static("public"));
 
@@ -44,6 +49,8 @@ app.use("/order", JWTController.verifyAccessToken.bind(JWTController), orderRout
 
 app.post("/register", HomeController.register);
 app.post("/login", HomeController.login);
+app.get("/newAccess", JWTController.grantNewAccessToken.bind(JWTController))
+
 
 app.get("/", (req, res) => {
   res.send({ message: "You're connected to this api." });

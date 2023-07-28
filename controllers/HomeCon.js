@@ -25,7 +25,7 @@ exports.HomeController = {
       phone: req.body.phone,
       email: req.body.email,
       password: hashedPassword,
-      type_id: 1,
+      type_id: 3,
     });
 
     const type = await Type.findByPk(user.type_id);
@@ -45,10 +45,13 @@ exports.HomeController = {
         phone: user.phone,
         email: user.email,
         type: type.title,
+        cart: cart.id
       },
       access_token: token.access_token,
+      refresh_token: token.refresh_token
     });
   },
+
   async login(req, res) {
     await connect();
 
@@ -76,9 +79,12 @@ exports.HomeController = {
           name: user.name,
           phone: user.phone,
           email: user.email,
+          avapic: user.url,
           type: type.title,
+          cart_id: cart.id
         },
-        access_token: token.access_token,
+        access_token: token?.access_token,
+        refresh_token: token?.refresh_token,
       });
     } else res.status(400).json({ errors: { msg: "Incorrect Password" } });
   },
