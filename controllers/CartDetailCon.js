@@ -81,8 +81,8 @@ exports.CartDetailController = {
     });
     console.log(extractPiD);
     if (extractPiD) {
-      const newPqty = extractPiD.dataValues.qty + req.body.qty;
-      const newPamount = extractPiD.dataValues.amount + req.body.amount;
+      const newPqty = req.body.qty + extractPiD.qty;
+      const newPamount = req.body.amount + extractPiD.amount;
       const cd = await CartDetail.update(
         {
           qty: newPqty,

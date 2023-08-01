@@ -74,8 +74,10 @@ exports.BankController = {
         if (fileSize > 2000000)
           return res.status(422).json({ msg: "Image must be less than 2 MB." });
 
-        const filepath = `./public/internal/${findBank.image}`;
-        fs.unlinkSync(filepath);
+        if(findBank.image){
+          const filepath = `./public/internal/${findBank.image}`;
+          fs.unlinkSync(filepath);
+        }
 
         file.mv(`./public/internal/${fileName}`, (err) => {
           if (err) return res.status(500).json({ msg: err.message });

@@ -27,6 +27,34 @@ exports.OrderController = {
     });
   },
 
+  async getAllByStatusId(req, res) {
+    const Qprop = `SELECT orders.id, orders.total, orders.createdAt, payments.title as "pembayaran", statuses.title as "status", users.name, users.email, users.url `;
+    const Qrelate = `FROM orders INNER JOIN users on orders.user_id = users.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id WHERE orders.status_id = ${req.params.id}`;
+
+    const order = await sequelize.query(Qprop.concat(Qrelate), {
+      type: Sequelize.QueryTypes.SELECT,
+    });
+
+    res.send({
+      msg: "Orders Collected Succesfully",
+      result: order,
+    });
+  },
+  async getAllByUserNstat(req, res) {
+    console.log(req.body, 'here payload')
+    const Qprop = `SELECT orders.id, orders.total, orders.createdAt, payments.title as "pembayaran", statuses.title as "status", users.name, users.email, users.url `;
+    const Qrelate = `FROM orders INNER JOIN users on orders.user_id = users.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id WHERE orders.status_id = ${req.body.status_id} AND orders.user_id = ${req.params.user_id}`;
+
+    const order = await sequelize.query(Qprop.concat(Qrelate), {
+      type: Sequelize.QueryTypes.SELECT,
+    });
+
+    res.send({
+      msg: "Orders Collected Succesfully",
+      result: order,
+    });
+  },
+
   //try loop create
 
   async loopingCreate(req, res) {
@@ -53,7 +81,7 @@ exports.OrderController = {
   async getQuick(req, res) {
     const findOrder = await Order.findByPk(req.params.id);
     if (findOrder) {
-      const Qprop = `SELECT orders.id, orders.variant, orders.unit, orders.amount, orders.shipping, orders.total, orders.ship_url, orders.proof_url, `;
+      const Qprop = `SELECT orders.id, orders.name as "penerima", orders.variant, orders.unit, orders.amount, orders.cp, orders.address, orders.shipping, orders.total, orders.ship_url, orders.proof_url, orders.createdAt, `;
       const Qassoc = `payments.title as "pembayaran", accounts.bank_name as "bank", accounts.norek, statuses.title as "status", users.name, users.url, users.email `;
       const Qrelate = `FROM orders INNER JOIN accounts on orders.account_id = accounts.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id INNER JOIN users on orders.user_id = users.id `;
       const Qclause = `WHERE orders.id = ${req.params.id}`;
@@ -68,6 +96,8 @@ exports.OrderController = {
           type: Sequelize.QueryTypes.SELECT,
         }
       );
+      
+      console.log(order[0], 'here')
 
       const dataset = await sequelize.query(
         Dprop.concat(Drelate).concat(Dclause),
@@ -94,7 +124,7 @@ exports.OrderController = {
   async getInvoice(req, res) {
     const findOrder = await Order.findByPk(req.params.order_id);
     if (findOrder) {
-      const Qprop = `SELECT orders.id, orders.variant, orders.unit, orders.amount, orders.shipping, orders.total, orders.createdAt, orders.cp, orders.address, orders.name as "penerima", orders.ship_url, orders.proof_url, `;
+      const Qprop = `SELECT orders.id, orders.variant, orders.unit, orders.amount, orders.shipping, orders.total, orders.createdAt, orders.cp, orders.address, orders.name as "penerima", orders.ship_url, orders.proof_url, orders.note, `;
       const Qassoc = `payments.title as "pembayaran", accounts.bank_name as "bank", accounts.norek, statuses.title as "status", statuses.description as "info", users.name, users.url, users.email `;
       const Qrelate = `FROM orders INNER JOIN accounts on orders.account_id = accounts.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id INNER JOIN users on orders.user_id = users.id `;
       const Qclause = `WHERE orders.id = ${req.params.order_id}`;
@@ -222,7 +252,6 @@ exports.OrderController = {
       },
     });
 
-    console.log(cartProp);
     // bikin order baru dan ambil id
     const order = await Order.create({
       variant: cartProp?.dataValues?.variant,
@@ -301,6 +330,36 @@ exports.OrderController = {
         msg: "Order not found.",
       });
     }
+  },
+
+  async getCompletion(req, res) {
+    const LastOrder = await sequelize.query(
+      `SELECT orders.id, orders.variant, orders.unit, orders.amount FROM orders WHERE orders.user_id = ${req.params.user_id} AND orders.cp IS NULL ORDER BY orders.id DESC LIMIT 1`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    if (LastOrder.length !== 0) {
+      const Dprop = `SELECT order_details.qty, order_details.amount, products.title as "produk", products.price, products.url, categories.title as "kategori" `;
+      const Drelate = `FROM order_details INNER JOIN products on order_details.product_id = products.id INNER JOIN categories on products.ctg_id = categories.id `;
+      const Dclause = `WHERE order_details.order_id = ${LastOrder[0].id}`;
+
+      const OrderData = await sequelize
+        .query(Dprop.concat(Drelate).concat(Dclause), {
+          type: Sequelize.QueryTypes.SELECT,
+        })
+        .catch((error) => {
+          console.log(error);
+          return;
+        });
+
+      res.status(200).send({
+        msg: "OK",
+        metadata: LastOrder[0],
+        dataset: OrderData,
+      });
+    }
+
+    return LastOrder;
   },
 
   // new order, user step 2
@@ -404,9 +463,13 @@ exports.OrderController = {
       const order = await Order.update(
         {
           ...req.body,
-          ship_url: req?.files?.ship ? imagesHolder?.ship_url : findOrder.ship_url,
+          ship_url: req?.files?.ship
+            ? imagesHolder?.ship_url
+            : findOrder.ship_url,
           ship: req?.files?.ship ? imagesHolder?.ship : findOrder.ship,
-          proof_url: req?.files?.proof ? imagesHolder?.proof_url : findOrder.proof_url,
+          proof_url: req?.files?.proof
+            ? imagesHolder?.proof_url
+            : findOrder.proof_url,
           proof: req?.files?.proof ? imagesHolder?.proof : findOrder.proof,
         },
         {

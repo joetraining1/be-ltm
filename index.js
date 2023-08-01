@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const FileUpload = require("express-fileupload");
+const { rateLimiterMiddleware } = require('./utils/RateLimiter')
 
 // const { init } = require('./config/db')
 
@@ -19,6 +20,7 @@ app.use(cors(
 ));
 app.use(FileUpload());
 app.use(express.static("public"));
+app.use(rateLimiterMiddleware)
 
 const { JWTController } = require("./controllers/JWTCon");
 const { HomeController } = require('./controllers/HomeCon');
@@ -34,6 +36,7 @@ const accountRouter = require('./routes/Account')
 const cartRouter = require('./routes/Cart')
 const cartDetailRouter = require('./routes/CartDetail')
 const orderRouter = require('./routes/Order');
+const { ProductController } = require("./controllers/ProductCon");
 
 app.use("/type", JWTController.verifyAccessToken.bind(JWTController), typeRouter);
 app.use("/ctg", JWTController.verifyAccessToken.bind(JWTController), ctgRouter);
@@ -50,6 +53,10 @@ app.use("/order", JWTController.verifyAccessToken.bind(JWTController), orderRout
 app.post("/register", HomeController.register);
 app.post("/login", HomeController.login);
 app.get("/newAccess", JWTController.grantNewAccessToken.bind(JWTController))
+app.get("/showcase", ProductController.showcase)
+app.get("/showcase/:ctg_id", ProductController.showcaseById)
+app.get("/display", ProductController.display)
+app.post("/search", ProductController.searchProduct)
 
 
 app.get("/", (req, res) => {

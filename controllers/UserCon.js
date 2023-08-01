@@ -23,7 +23,7 @@ exports.UserController = {
         alamat: req?.body?.alamat,
         email: req?.body?.email,
         password: hashedPassword,
-        type_id: 1,
+        type_id: req?.type_id ? req.body.type_id : 3,
       });
 
       const cart = await CartController.createByUser(user.id);
@@ -57,7 +57,7 @@ exports.UserController = {
             image: fileName,
             email: req?.body?.email,
             password: hashedPassword,
-            type_id: 1,
+            type_id: req.body.type_id ? req.body.type_id : 3,
           });
           res.status(201).json({ msg: "User added." });
         } catch (error) {
@@ -111,8 +111,6 @@ exports.UserController = {
   async updateUser(req, res) {
     await connect();
 
-    console.log(req.files.image);
-
     const findUser = await User.findOne({
       where: {
         id: req.params.id,
@@ -153,13 +151,22 @@ exports.UserController = {
           url: url,
         };
       }
+      console.log("checking clear photo :", req.body?.image);
       const user = await User.update(
         {
           name: req?.body?.name ? req.body.name : findUser.name,
           phone: req?.body?.phone ? req.body.phone : findUser.phone,
           alamat: req?.body?.alamat ? req.body.alamat : findUser.alamat,
-          image: req?.files?.image ? fileImage.image : findUser.image,
-          url: req?.files?.image ? fileImage.url : findUser.url,
+          image: req?.files?.image
+            ? fileImage.image
+            : req.body.image
+            ? null
+            : findUser.image,
+          url: req?.files?.image
+            ? fileImage.url
+            : req.body.image
+            ? null
+            : findUser.url,
           email: req?.body?.email ? req.body.email : findUser.email,
           password: req?.body?.password ? password : findUser.password,
         },
@@ -192,64 +199,94 @@ exports.UserController = {
     await connect();
 
     const userQ = await sequelize.query(
-      "SELECT users.id, users.name, users.phone, users.alamat, users.url, types.title as `type` FROM `users` INNER join types on users.type_id = types.id ",
+      `SELECT users.id, users.name, users.phone, users.email, users.alamat, users.url, users.createdAt, types.title as "type" FROM users INNER join types on users.type_id = types.id`,
       { type: Sequelize.QueryTypes.SELECT }
     );
 
-    // const user = await User.findAll({
-    //   attributes: ["id", "name", "phone", "alamat", "email", "url"],
-    //   include: [{
-    //     model: Type,
-    //   }]
-    // });
-    // const type = await Type.findByPk(user.type_id);
+    let completeSet = [];
+
+    for (const element of userQ) {
+      const countDone = await Order.count({
+        where: {
+          [Op.and]: [{ user_id: element.id }, { status_id: 7 }],
+        },
+      });
+      const active = await Order.count({
+        where: {
+          [Op.and]: [
+            { user_id: element.id },
+            {
+              status_id: {
+                [Op.not]: 7,
+              },
+            },
+          ],
+        },
+      });
+      completeSet = [
+        ...completeSet,
+        {
+          ...element,
+          done: countDone,
+          active: active,
+        },
+      ];
+    }
+
     if (!userQ) res.status(404).json({ errors: { msg: "User not found" } });
     else {
-      // const userParsing = {
-      //   type: type.title,
-      // };
       res.status(200).send({
         msg: "User found.",
-        result: userQ,
+        result: completeSet,
       });
     }
   },
 
   async getUser(req, res) {
     await connect();
+    try {
+      const userQ = await sequelize.query(
+        `SELECT users.id, users.name, users.phone, users.alamat, users.url, users.email, users.createdAt, types.title as "type" FROM users INNER join types on users.type_id = types.id WHERE users.id = ${req.params.id}`,
+        { type: Sequelize.QueryTypes.SELECT }
+      );
 
-    const userQ = await sequelize.query(
-      `SELECT users.id, users.name, users.phone, users.alamat, users.url, users.email, users.createdAt, types.title as "type" FROM users INNER join types on users.type_id = types.id WHERE users.id = ${req.params.id}`,
-      { type: Sequelize.QueryTypes.SELECT }
-    );
+      const LastOrder = await sequelize.query(
+        `SELECT orders.id, orders.variant, orders.unit, orders.amount FROM orders WHERE orders.user_id = ${req.params.id} AND orders.cp IS NULL ORDER BY orders.id DESC LIMIT 1`,
+        { type: Sequelize.QueryTypes.SELECT }
+      );
 
-    const LastOrder = await sequelize.query(
-      `SELECT * FROM orders WHERE orders.user_id = ${req.params.id} AND orders.cp IS NULL ORDER BY id DESC LIMIT 1`,
-      { type: Sequelize.QueryTypes.SELECT }
-    );
+      const countDone = await Order.count({
+        where: {
+          [Op.and]: [{ user_id: req.params.id }, { status_id: 7 }],
+        },
+      });
+      const active = await Order.count({
+        where: {
+          [Op.and]: [
+            { user_id: req.params.id },
+            {
+              status_id: {
+                [Op.not]: 7,
+              },
+            },
+          ],
+        },
+      });
 
-
-    res.status(200).send({
-      msg: 'data found.',
-      result: userQ[0],
-      last: LastOrder
-    })
-
-    // // const user = await User.findOne({
-    // //   where: {
-    // //     id: req.params.id,
-    // //   },
-    // //   attributes: ["id", "name", "phone", "alamat", "email", "url"],
-    // // });
-    // // const type = await Type.findByPk(user.type_id);
-
-    // if (!userQ) res.status(404).send({ errors: { msg: "User not found" } });
-    // else {
-    //   res.send({
-    //     msg: "User found.",
-    //     result: userQ,
-    //   });
-    // }
+      res.status(200).send({
+        msg: "data found.",
+        result: userQ[0],
+        last: LastOrder,
+        done: countDone,
+        active: active,
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).send({
+        msg: "data not found.",
+      });
+      return;
+    }
   },
 
   async deleteUser(req, res) {

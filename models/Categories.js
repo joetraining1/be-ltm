@@ -19,4 +19,10 @@ Categories.hasMany(Product, {
   },
 });
 
+Product.belongsTo(Categories, {
+  foreignKey: {
+    name: 'ctg_id'
+  }
+})
+
 exports.Categories = Categories

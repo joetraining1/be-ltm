@@ -6,7 +6,7 @@ const { Cart } = require("../models/Carts");
 exports.CartController = {
   // get all record of cart
   async getAll(req, res) {
-    const Qprop = `SELECT carts.id, carts.variant, carts.unit, carts.total, users.name, users.email, users.url `;
+    const Qprop = `SELECT carts.id, carts.variant, carts.unit, carts.total, carts.createdAt, users.name, users.email, users.url `;
     const Qrelate = "FROM carts INNER JOIN users on carts.user_id = users.id";
 
     const cd = await sequelize.query(Qprop.concat(Qrelate), {

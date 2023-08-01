@@ -6,7 +6,7 @@ exports.AccountController = {
   async getAll(req, res) {
     // const ba = await BankAccount.findAll();
     const ba = await sequelize.query(
-        "SELECT accounts.id, accounts.bank_name, accounts.norek, banks.url, users.name FROM `accounts` INNER join banks on accounts.bank_id = banks.id INNER JOIN users on accounts.user_id = users.id",
+        `SELECT accounts.id, accounts.bank_name, accounts.norek, accounts.createdAt, banks.url, accounts.bank_id, users.name FROM accounts INNER join banks on accounts.bank_id = banks.id INNER JOIN users on accounts.user_id = users.id`,
         { type: Sequelize.QueryTypes.SELECT }
       );
 
@@ -21,7 +21,7 @@ exports.AccountController = {
       bank_name: req?.body?.bank_name,
       norek: req?.body?.norek,
       bank_id: req?.body?.bank_id,
-      user_id: 2,
+      user_id: 12,
     });
 
     res.send({
