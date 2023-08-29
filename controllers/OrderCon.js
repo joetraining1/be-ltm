@@ -1,4 +1,4 @@
-const { Sequelize } = require("sequelize");
+const { Sequelize, json } = require("sequelize");
 const { sequelize } = require("../config/db");
 const { OrderDetail } = require("../models/OrderDetail");
 const { Order } = require("../models/Orders");
@@ -9,13 +9,14 @@ const { ImageHandler } = require("../utils/ImageHandler");
 const { OrderDetailController } = require("./OrderDetailCon");
 const { User } = require("../models/Users");
 const { CartDetail } = require("../models/CartDetails");
+const { Product } = require("../models/Products");
 
 exports.OrderController = {
   // admin display data
   async getAll(req, res) {
     const Qprop = `SELECT orders.id, orders.total, orders.createdAt, payments.title as "pembayaran", statuses.title as "status", users.name, users.email, users.url `;
     const Qrelate =
-      "FROM orders INNER JOIN users on orders.user_id = users.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id";
+      "FROM orders INNER JOIN users on orders.user_id = users.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id ORDER BY orders.id DESC";
 
     const order = await sequelize.query(Qprop.concat(Qrelate), {
       type: Sequelize.QueryTypes.SELECT,
@@ -41,7 +42,7 @@ exports.OrderController = {
     });
   },
   async getAllByUserNstat(req, res) {
-    console.log(req.body, 'here payload')
+    console.log(req.body, "here payload");
     const Qprop = `SELECT orders.id, orders.total, orders.createdAt, payments.title as "pembayaran", statuses.title as "status", users.name, users.email, users.url `;
     const Qrelate = `FROM orders INNER JOIN users on orders.user_id = users.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id WHERE orders.status_id = ${req.body.status_id} AND orders.user_id = ${req.params.user_id}`;
 
@@ -77,11 +78,30 @@ exports.OrderController = {
     res.status(200).send(loops);
   },
 
+  async getById(req, res) {
+    const Qprop = `SELECT orders.id, orders.name as "penerima", orders.variant, orders.unit, orders.amount, orders.cp, orders.address, orders.shipping, orders.total, orders.ship_url, orders.proof_url, orders.createdAt, orders.note, `;
+    const Qassoc = `payments.title as "pembayaran", accounts.bank_name as "bank", accounts.norek, statuses.title as "status", statuses.id as "sId", users.name, users.url, users.email `;
+    const Qrelate = `FROM orders INNER JOIN accounts on orders.account_id = accounts.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id INNER JOIN users on orders.user_id = users.id `;
+    const Qclause = `WHERE orders.id = ${req.params.id}`;
+
+    const order = await sequelize.query(
+      Qprop.concat(Qassoc).concat(Qrelate).concat(Qclause),
+      {
+        type: Sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    res.send({
+      msg: "Orders Collected Succesfully",
+      result: order[0],
+    });
+  },
+
   // quick look display data
   async getQuick(req, res) {
     const findOrder = await Order.findByPk(req.params.id);
     if (findOrder) {
-      const Qprop = `SELECT orders.id, orders.name as "penerima", orders.variant, orders.unit, orders.amount, orders.cp, orders.address, orders.shipping, orders.total, orders.ship_url, orders.proof_url, orders.createdAt, `;
+      const Qprop = `SELECT orders.id, orders.name as "penerima", orders.variant, orders.unit, orders.amount, orders.cp, orders.address, orders.shipping, orders.total, orders.ship_url, orders.proof_url, orders.createdAt, orders.note, `;
       const Qassoc = `payments.title as "pembayaran", accounts.bank_name as "bank", accounts.norek, statuses.title as "status", users.name, users.url, users.email `;
       const Qrelate = `FROM orders INNER JOIN accounts on orders.account_id = accounts.id INNER JOIN payments on orders.payment_id = payments.id INNER JOIN statuses on orders.status_id = statuses.id INNER JOIN users on orders.user_id = users.id `;
       const Qclause = `WHERE orders.id = ${req.params.id}`;
@@ -96,8 +116,6 @@ exports.OrderController = {
           type: Sequelize.QueryTypes.SELECT,
         }
       );
-      
-      console.log(order[0], 'here')
 
       const dataset = await sequelize.query(
         Dprop.concat(Drelate).concat(Dclause),
@@ -219,18 +237,48 @@ exports.OrderController = {
         imagesHolder = { ...imagesHolder, proof: fileName, proof_url: url };
       }
     }
-    const order = await Order.create({
-      ...req.body,
-      ship_url: req?.files?.ship ? imagesHolder?.ship_url : null,
-      ship: req?.files?.ship ? imagesHolder?.ship : null,
-      proof_url: req?.files?.proof ? imagesHolder?.proof_url : null,
-      proof: req?.files?.proof ? imagesHolder?.proof : null,
-    });
 
-    res.send({
-      msg: "Order added.",
-      result: order,
-    });
+    if (req.body.dataset && req.body.metadata) {
+      const decodeData = JSON.parse(req.body.dataset);
+      const decodeMeta = JSON.parse(req.body.metadata);
+
+      const order = await Order.create({
+        ...decodeMeta,
+        ship_url: req?.files?.ship ? imagesHolder?.ship_url : null,
+        ship: req?.files?.ship ? imagesHolder?.ship : null,
+        proof_url: req?.files?.proof ? imagesHolder?.proof_url : null,
+        proof: req?.files?.proof ? imagesHolder?.proof : null,
+      });
+
+      for (const elet of decodeData) {
+        console.log(elet, "here the dataset");
+        console.log(order.id, "here the dataset");
+        const product = await OrderDetail.create({
+          qty: elet.qty,
+          amount: elet.amount,
+          order_id: order.id,
+          product_id: elet.product_id,
+        });
+        console.log(product, "this is created data");
+      }
+
+      res.send({
+        msg: "Order added.",
+        result: order,
+      });
+    } else {
+      const order = await Order.create({
+        ...req.body,
+        ship_url: req?.files?.ship ? imagesHolder?.ship_url : null,
+        ship: req?.files?.ship ? imagesHolder?.ship : null,
+        proof_url: req?.files?.proof ? imagesHolder?.proof_url : null,
+        proof: req?.files?.proof ? imagesHolder?.proof : null,
+      });
+      res.send({
+        msg: "Order added.",
+        result: order,
+      });
+    }
   },
 
   // new order, user step 1
@@ -260,6 +308,29 @@ exports.OrderController = {
       user_id: req.body.user_id,
       status_id: 1,
     });
+
+    // kalkulasi stock
+    const prodIds = cartData.map((item) => {
+      return {
+        id: item.product_id,
+        qty: item.qty,
+      };
+    });
+
+    for (const ele of prodIds) {
+      const product = await Product.findByPk(ele.id);
+      const newQty = product.dataValues.stock - ele.qty;
+      const upStock = await Product.update(
+        {
+          stock: newQty,
+        },
+        {
+          where: {
+            id: ele.id,
+          },
+        }
+      );
+    }
 
     // migrasi ke item order
     const multiCreate = cartData.map(async function (item, index) {
@@ -417,6 +488,10 @@ exports.OrderController = {
     const findOrder = await Order.findByPk(req.params.id);
     if (findOrder) {
       let imagesHolder;
+      let shipPrice;
+      if (req.body.shipping) {
+        shipPrice = parseInt(req.body.shipping);
+      }
       if (req?.files?.ship || req?.files?.proof) {
         if (req?.files?.ship) {
           const file = req.files.ship;
@@ -463,6 +538,9 @@ exports.OrderController = {
       const order = await Order.update(
         {
           ...req.body,
+          total: req.body.shipping
+            ? findOrder.amount + shipPrice
+            : findOrder.total,
           ship_url: req?.files?.ship
             ? imagesHolder?.ship_url
             : findOrder.ship_url,

@@ -15,6 +15,19 @@ exports.ProductController = {
     });
   },
 
+  async getAllWithCtg(req, res) {
+    // const product = await Product.findAll();
+    const product = await sequelize.query(
+      `SELECT products.id, products.title, products.price, categories.title as "kategori" from products INNER JOIN categories on products.ctg_id = categories.id`,
+      { type: Sequelize.QueryTypes.SELECT }
+    );
+
+    res.send({
+      msg: "Product Collected Succesfully",
+      result: product,
+    });
+  },
+
   async showcaseById(req, res) {
     try {
       const ctg = await Categories.findByPk(req.params.ctg_id);

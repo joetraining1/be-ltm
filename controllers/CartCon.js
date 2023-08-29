@@ -19,6 +19,85 @@ exports.CartController = {
     });
   },
 
+  async searchByUserEmail(req, res) {
+    let arrKeys = "";
+    const keyword = req.body.keyword;
+    console.log(keyword);
+    let arrResult = [];
+    let uniqArr = [];
+    let uniqObj = {};
+    try {
+      if (/\s/g.test(keyword)) {
+        arrKeys = keyword.split(" ");
+        for (const keys of arrKeys) {
+          const qParam = `SELECT carts.id, carts.variant, carts.unit, carts.total, carts.createdAt, users.name, users.email, users.url `;
+          const qRelate = `from carts INNER JOIN users on carts.user_id = users.id `;
+          const qClause = `WHERE users.name LIKE "%${keys}%" OR users.email LIKE "%${keys}%"`;
+          const product = await sequelize.query(
+            qParam.concat(qRelate).concat(qClause),
+            { type: Sequelize.QueryTypes.SELECT }
+          );
+          arrResult = [...arrResult, ...product];
+        }
+        for (let i in arrResult) {
+          const objTitle = arrResult[i]["title"];
+          uniqObj[objTitle] = arrResult[i];
+        }
+        for (i in uniqObj) {
+          uniqArr.push(uniqObj[i]);
+        }
+        res.status(200).send({
+          msg: "OK",
+          result: uniqArr,
+        });
+      } else {
+        const qParam = `SELECT carts.id, carts.variant, carts.unit, carts.total, carts.createdAt, users.name, users.email, users.url `;
+        const qRelate = `from carts INNER JOIN users on carts.user_id = users.id `;
+        const qClause = `WHERE users.name LIKE "%${keyword}%" OR users.email LIKE "%${keyword}%"`;
+        const product = await sequelize.query(
+          qParam.concat(qRelate).concat(qClause),
+          { type: Sequelize.QueryTypes.SELECT }
+        );
+        arrResult = [...arrResult, ...product];
+        res.status(200).send({
+          msg: "OK",
+          result: arrResult,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+
+      res.status(500).send({
+        msg: "error occured.",
+      });
+    }
+  },
+
+  async getQuick(req, res) {
+    const cart = await Cart.findByPk(req.params.id);
+    if (cart) {
+      const Qprop = `SELECT cart_details.id, cart_details.qty, cart_details.amount, products.url, products.price, products.title as "nama_produk", categories.title as "kategori" `;
+      const Qrelate =
+        "FROM cart_details INNER JOIN products on cart_details.product_id = products.id LEFT OUTER JOIN categories on products.ctg_id = categories.id ";
+      const Qparam = `WHERE cart_details.cart_id = ${cart?.id}`;
+      const cd = await sequelize.query(Qprop.concat(Qrelate).concat(Qparam), {
+        type: Sequelize.QueryTypes.SELECT,
+      });
+
+      res.status(200).send({
+        msg: "OK.",
+        result: {
+          metadata: cart,
+          dataset: cd
+        },
+      });
+    } else {
+      res.status(404).send({
+        msg: "Cart data not found.",
+      });
+    }
+  },
+
   // get all record of cart based on cart id using user_id
   async getAllbyUser(req, res) {
     const cart = await Cart.findOne({
@@ -39,8 +118,8 @@ exports.CartController = {
         msg: "Cart Detail Collected Succesfully",
         result: {
           metadata: cart,
-          dataset: cd
-        }
+          dataset: cd,
+        },
       });
     } else {
       res.status(404).send({
@@ -68,8 +147,8 @@ exports.CartController = {
         msg: "Cart Detail Collected Succesfully",
         result: {
           metadata: cart,
-          dataset: cd
-        }
+          dataset: cd,
+        },
       });
     } else {
       res.status(404).send({

@@ -30,6 +30,7 @@ exports.HomeController = {
 
     const type = await Type.findByPk(user.type_id);
     const cart = await CartController.createByUser(user.id);
+    console.log(cart)
 
     const token = JWTController.createToken({ email: user.email }, true);
 
@@ -45,7 +46,7 @@ exports.HomeController = {
         phone: user.phone,
         email: user.email,
         type: type.title,
-        cart: cart.id
+        cart_id: cart.id
       },
       access_token: token.access_token,
       refresh_token: token.refresh_token

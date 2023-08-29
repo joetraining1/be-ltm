@@ -68,8 +68,12 @@ exports.UserController = {
   },
 
   async me(req, res) {
-    const token = cookieParser("accessToken", req.headers.cookie);
+    // const token = cookieParser("accessToken", req.headers.cookie);
+    const token = req.headers["authorization"].split(" ")[1];
+    console.log(token, 'provided by me')
+    console.log('im running..')
     const decoded = JWTController.verifyToken(token);
+    console.log(decoded)
     if (!decoded) {
       res.status(405).json({
         msg: "Invalid token.",
@@ -131,7 +135,7 @@ exports.UserController = {
         const allowedType = [".png", ".jpg", ".jpeg"];
 
         if (!allowedType.includes(ext.toLowerCase()))
-          return res.status(422).json({ msg: "Invalid image extension." });
+          return res.status(422).json({ msg: "Format file salah." });
         if (fileSize > 2000000)
           return res.status(422).json({ msg: "Image must be less than 2 MB." });
 
@@ -238,6 +242,120 @@ exports.UserController = {
       res.status(200).send({
         msg: "User found.",
         result: completeSet,
+      });
+    }
+  },
+
+  async searchByUserEmail(req, res) {
+    let arrKeys = "";
+    const keyword = req.body.keyword;
+    console.log(keyword);
+    let arrResult = [];
+    let uniqArr = [];
+    let uniqObj = {};
+    try {
+      if (/\s/g.test(keyword)) {
+        arrKeys = keyword.split(" ");
+        for (const keys of arrKeys) {
+          const qParam = `SELECT users.id, users.name, users.phone, users.email, users.alamat, users.url, users.createdAt, types.title as "type" `;
+          const qRelate = `from users INNER JOIN types on users.type_id = types.id `;
+          const qClause = `WHERE users.name LIKE "%${keys}%" OR users.email LIKE "%${keys}%"`;
+          const product = await sequelize.query(
+            qParam.concat(qRelate).concat(qClause),
+            { type: Sequelize.QueryTypes.SELECT }
+          );
+          arrResult = [...arrResult, ...product];
+        }
+        for (let i in arrResult) {
+          const objTitle = arrResult[i]["title"];
+          uniqObj[objTitle] = arrResult[i];
+        }
+        for (i in uniqObj) {
+          uniqArr.push(uniqObj[i]);
+        }
+
+        let completeSet = [];
+
+        for (const element of uniqArr) {
+          const countDone = await Order.count({
+            where: {
+              [Op.and]: [{ user_id: element.id }, { status_id: 7 }],
+            },
+          });
+          const active = await Order.count({
+            where: {
+              [Op.and]: [
+                { user_id: element.id },
+                {
+                  status_id: {
+                    [Op.not]: 7,
+                  },
+                },
+              ],
+            },
+          });
+          completeSet = [
+            ...completeSet,
+            {
+              ...element,
+              done: countDone,
+              active: active,
+            },
+          ];
+        }
+        res.status(200).send({
+          msg: "OK",
+          result: completeSet,
+        });
+      } else {
+        const qParam = `SELECT users.id, users.name, users.phone, users.email, users.alamat, users.url, users.createdAt, types.title as "type" `;
+        const qRelate = `from users INNER JOIN types on users.type_id = types.id `;
+        const qClause = `WHERE users.name LIKE "%${keyword}%" OR users.email LIKE "%${keyword}%"`;
+        const product = await sequelize.query(
+          qParam.concat(qRelate).concat(qClause),
+          { type: Sequelize.QueryTypes.SELECT }
+        );
+        arrResult = [...arrResult, ...product];
+
+        let completeSet = [];
+
+        for (const element of arrResult) {
+          const countDone = await Order.count({
+            where: {
+              [Op.and]: [{ user_id: element.id }, { status_id: 7 }],
+            },
+          });
+          const active = await Order.count({
+            where: {
+              [Op.and]: [
+                { user_id: element.id },
+                {
+                  status_id: {
+                    [Op.not]: 7,
+                  },
+                },
+              ],
+            },
+          });
+          completeSet = [
+            ...completeSet,
+            {
+              ...element,
+              done: countDone,
+              active: active,
+            },
+          ];
+        }
+        res.status(200).send({
+          msg: "OK",
+          result: completeSet,
+        });
+      }
+    } catch (error) {
+      console.log(error);
+
+      res.status(500).send({
+        msg: "error occured.",
       });
     }
   },

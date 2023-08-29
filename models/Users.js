@@ -36,7 +36,6 @@ User.hasMany(BankAccount, {
   foreignKey: {
       name: 'user_id'
   },
-  onDelete: 'CASCADE'
 })
 User.hasOne(Cart, {
   foreignKey: {

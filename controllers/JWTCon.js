@@ -44,7 +44,7 @@ exports.JWTController = {
     let decoded = this.verifyToken(token);
     if (!decoded) res.status(405).json({ message: "invalid token" });
     else {
-      console.log(decoded);
+      console.log(decoded, "here result of decoded");
       let newToken = this.createToken({ email: decoded.email }, false);
       res.send({ access_token: newToken.access_token });
     }

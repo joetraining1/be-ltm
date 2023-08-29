@@ -3,6 +3,7 @@ const { UserController } = require('../controllers/UserCon');
 const router = require("express").Router()
 
 router.post("/", UserController.create);
+router.post("/search", UserController.searchByUserEmail);
 router.get("/", UserController.getAll);
 router.get("/me", UserController.me);
 router.get("/:id", UserController.getUser);

@@ -1,6 +1,6 @@
 const { IRateLimiterOptions, RateLimiterMemory } = require('rate-limiter-flexible');
 
-const MAX_REQUEST_LIMIT = 250;
+const MAX_REQUEST_LIMIT = 500;
 const MAX_REQUEST_WINDOW = 2 * 60; // Per minutes by IP
 const TOO_MANY_REQUESTS_MESSAGE = "The server got flooded by your request!";
 
